@@ -1,9 +1,17 @@
 import logging
 import os
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import asyncpg
 
 log = logging.getLogger("avenida-db")
+
+
+def _sanitize(url: str) -> str:
+    """Neon agrega channel_binding; asyncpg no lo entiende, lo quitamos."""
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != "channel_binding"]
+    return urlunsplit(parts._replace(query=urlencode(query)))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS personal_roles (
@@ -70,7 +78,7 @@ async def init() -> None:
         return
     try:
         _pool = await asyncpg.create_pool(
-            dsn=url,
+            dsn=_sanitize(url),
             min_size=1,
             max_size=5,
             command_timeout=20,
