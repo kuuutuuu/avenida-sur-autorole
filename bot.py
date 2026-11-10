@@ -4,9 +4,11 @@ import os
 
 import discord
 from aiohttp import web
+from discord import app_commands
 from discord.ext import commands
 from discord.http import Route
 
+import content
 import db
 
 TOKEN = os.environ["DISCORD_TOKEN"]
@@ -88,6 +90,33 @@ async def on_member_join(member: discord.Member) -> None:
     if member.guild.id != GUILD_ID or member.bot:
         return
     await assign(member, "Autorole: nuevo miembro")
+
+
+def build_help_embed() -> discord.Embed:
+    lines = []
+    for cmd in sorted(bot.tree.get_commands(), key=lambda c: c.name):
+        if isinstance(cmd, app_commands.Command) and cmd.name not in content.HELP_HIDDEN_COMMANDS:
+            lines.append(f"`/{cmd.name}` — {cmd.description}")
+    description = content.HELP_DESCRIPTION.strip()
+    if lines:
+        description = (description + "\n\n" if description else "") + "\n".join(lines)
+    embed = discord.Embed(title=content.HELP_TITLE, description=description or None, color=0x90A4AE)
+    embed.set_footer(text=content.HELP_FOOTER)
+    return embed
+
+
+async def send_help(interaction: discord.Interaction) -> None:
+    await interaction.response.send_message(embed=build_help_embed(), ephemeral=True)
+
+
+@bot.tree.command(name="ayuda", description=content.CMD_AYUDA_DESC)
+async def ayuda(interaction: discord.Interaction) -> None:
+    await send_help(interaction)
+
+
+@bot.tree.command(name="help", description=content.CMD_HELP_DESC)
+async def help_command(interaction: discord.Interaction) -> None:
+    await send_help(interaction)
 
 
 async def health(_: web.Request) -> web.Response:
