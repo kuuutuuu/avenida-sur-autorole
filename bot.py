@@ -24,7 +24,7 @@ intents.members = True  # Privileged: Server Members Intent
 intents.message_content = True  # Needed for filters/quote/auto-responses later
 
 bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
-state = {"ready": False}
+state = {"ready": False, "sync_error": None, "synced": 0}
 
 
 async def assign(member: discord.Member, reason: str) -> None:
@@ -70,19 +70,29 @@ async def catch_up() -> None:
             await assign(member, "Catch-up autorole Forastero (cache)")
 
 
+async def sync_commands() -> None:
+    try:
+        cmds = bot.tree.get_commands()
+        log.info("Comandos en el arbol: %s", [c.name for c in cmds])
+        if not cmds:
+            state["sync_error"] = "arbol vacio"
+            return
+        synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        state["synced"] = len(synced)
+        state["sync_error"] = None
+        log.info("Comandos sincronizados: %s", [c.name for c in synced])
+    except Exception as exc:
+        state["sync_error"] = repr(exc)
+        log.warning("No se pudieron sincronizar comandos: %r", exc)
+
+
 @bot.event
 async def on_ready() -> None:
     state["ready"] = True
     log.info("Conectado como %s (%s)", bot.user, bot.user.id)
     await catch_up()
     log.info("Catch-up completado")
-    # Sync de comandos solo cuando existan (fases siguientes)
-    try:
-        if bot.tree.get_commands():
-            await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-            log.info("Comandos sincronizados en el guild")
-    except Exception as exc:
-        log.warning("No se pudieron sincronizar comandos: %s", exc)
+    await sync_commands()
 
 
 @bot.event
@@ -158,11 +168,28 @@ async def debug(_: web.Request) -> web.Response:
         return web.json_response({"error": str(exc)}, status=500)
 
 
+async def commands_info(_: web.Request) -> web.Response:
+    return web.json_response(
+        {
+            "tree": [c.name for c in bot.tree.get_commands()],
+            "synced": state["synced"],
+            "sync_error": state["sync_error"],
+        }
+    )
+
+
+async def sync_now(_: web.Request) -> web.Response:
+    await sync_commands()
+    return web.json_response({"synced": state["synced"], "sync_error": state["sync_error"]})
+
+
 async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
     app.router.add_get("/status", status)
     app.router.add_get("/debug", debug)
+    app.router.add_get("/commands", commands_info)
+    app.router.add_get("/sync", sync_now)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
