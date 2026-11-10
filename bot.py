@@ -15,6 +15,7 @@ TOKEN = os.environ["DISCORD_TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
 ROLE_ID = int(os.environ["ROLE_ID"])
 PORT = int(os.environ.get("PORT", "10000"))
+GUILD_OBJ = discord.Object(id=GUILD_ID)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("avenida-bot")
@@ -72,12 +73,12 @@ async def catch_up() -> None:
 
 async def sync_commands() -> None:
     try:
-        cmds = bot.tree.get_commands()
+        cmds = bot.tree.get_commands(guild=GUILD_OBJ)
         log.info("Comandos en el arbol: %s", [c.name for c in cmds])
         if not cmds:
             state["sync_error"] = "arbol vacio"
             return
-        synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        synced = await bot.tree.sync(guild=GUILD_OBJ)
         state["synced"] = len(synced)
         state["sync_error"] = None
         log.info("Comandos sincronizados: %s", [c.name for c in synced])
@@ -104,7 +105,7 @@ async def on_member_join(member: discord.Member) -> None:
 
 def build_help_embed() -> discord.Embed:
     lines = []
-    for cmd in sorted(bot.tree.get_commands(), key=lambda c: c.name):
+    for cmd in sorted(bot.tree.get_commands(guild=GUILD_OBJ), key=lambda c: c.name):
         if isinstance(cmd, app_commands.Command) and cmd.name not in content.HELP_HIDDEN_COMMANDS:
             lines.append(f"`/{cmd.name}` — {cmd.description}")
     description = content.HELP_DESCRIPTION.strip()
@@ -119,12 +120,12 @@ async def send_help(interaction: discord.Interaction) -> None:
     await interaction.response.send_message(embed=build_help_embed(), ephemeral=True)
 
 
-@bot.tree.command(name="ayuda", description=content.CMD_AYUDA_DESC)
+@bot.tree.command(name="ayuda", description=content.CMD_AYUDA_DESC, guild=GUILD_OBJ)
 async def ayuda(interaction: discord.Interaction) -> None:
     await send_help(interaction)
 
 
-@bot.tree.command(name="help", description=content.CMD_HELP_DESC)
+@bot.tree.command(name="help", description=content.CMD_HELP_DESC, guild=GUILD_OBJ)
 async def help_command(interaction: discord.Interaction) -> None:
     await send_help(interaction)
 
@@ -171,7 +172,7 @@ async def debug(_: web.Request) -> web.Response:
 async def commands_info(_: web.Request) -> web.Response:
     return web.json_response(
         {
-            "tree": [c.name for c in bot.tree.get_commands()],
+            "tree": [c.name for c in bot.tree.get_commands(guild=GUILD_OBJ)],
             "synced": state["synced"],
             "sync_error": state["sync_error"],
         }
