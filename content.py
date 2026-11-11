@@ -59,3 +59,27 @@ OJO_REASON_MENTIONS = "Anti-spam: muchas menciones"
 OJO_REASON_INVITE = "Enlace de invitación bloqueado"
 OJO_REASON_PHISH = "Phishing detectado"
 OJO_SUSPECT_MOTIVE = "Cuenta con menos de 7 días"
+
+# Fase 4 - Bienvenida en #isla (APROBADO)
+WELCOME_MENTION = "¡Bienvenido, {usuario}!"
+WELCOME_TEXT = "**Haz sido bautizado en las hediondas aguas del dique**"
+WELCOME_EMBED_COLOR = 0x4A90E2
+WELCOME_VERIFY = "✅ Verificarme"
+WELCOME_VERIFIED = "Verificado. Aquí tienes más opciones"
+WELCOME_OPT_VESTIDOR = "🎨 Vestidor"
+WELCOME_OPT_GUIDE = "🗺️ Guía de canales"
+WELCOME_OPT_RULES = "📜 8 Mandamientos"
+WELCOME_OPT_PRESENT = "👋 Preséntate"
+WELCOME_GUIDE_TITLE = "🗺️ Guía de canales"
+WELCOME_GUIDE = [
+    ("#info-🚨", "Anuncios y novedades."),
+    ("#comandos-💻", "Comandos de los bots y juegos."),
+    ("#area-de-descargas-📶", "Descargas compartidas por los papus."),
+    ("#8-mandamientos-📜", "Los ocho mandamientos de nuestro profeta."),
+    ("#isla-de-epstein-🏝️", "El chat general para hablar con los papus."),
+    ("#juegos-🎮", "Todo sobre videojuegos."),
+    ("#música-🎧", "Aquí van los comandos del bot de música."),
+    ("#el-truñito-🌲", "El rincón de nuestro truñito, riégalo a menudo."),
+    ("🔊 Guevo en el mano 🍆", "Canal AFK."),
+    ("🔊 La esquinita del payaso 🎪", "Canal de voz principal."),
+]

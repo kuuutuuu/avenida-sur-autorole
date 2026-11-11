@@ -12,6 +12,7 @@ import content
 import db
 from ojo import Ojo
 from vestidor import Vestidor
+from welcome import Welcome
 
 TOKEN = os.environ["DISCORD_TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
@@ -175,6 +176,7 @@ async def main() -> None:
     await db.init()
     await bot.add_cog(Vestidor(bot))
     await bot.add_cog(Ojo(bot))
+    await bot.add_cog(Welcome(bot))
     try:
         async with bot:
             await bot.start(TOKEN)

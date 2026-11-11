@@ -150,9 +150,7 @@ class Vestidor(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="vestidor", description=content.CMD_VESTIDOR_DESC)
-    @app_commands.guilds(GUILD_OBJ)
-    async def vestidor(self, interaction: discord.Interaction) -> None:
+    async def open_panel(self, interaction: discord.Interaction) -> None:
         embed = discord.Embed(
             title=content.VESTIDOR_TITLE,
             description=content.VESTIDOR_DESCRIPTION,
@@ -187,6 +185,11 @@ class Vestidor(commands.Cog):
         select.callback = on_select
         view.add_item(select)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @app_commands.command(name="vestidor", description=content.CMD_VESTIDOR_DESC)
+    @app_commands.guilds(GUILD_OBJ)
+    async def vestidor(self, interaction: discord.Interaction) -> None:
+        await self.open_panel(interaction)
 
     async def finish(
         self,
