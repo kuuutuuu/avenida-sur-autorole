@@ -10,6 +10,7 @@ from discord.http import Route
 
 import content
 import db
+from vestidor import Vestidor
 
 TOKEN = os.environ["DISCORD_TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
@@ -106,7 +107,7 @@ async def on_member_join(member: discord.Member) -> None:
 def build_help_embed() -> discord.Embed:
     lines = []
     for cmd in sorted(bot.tree.get_commands(guild=GUILD_OBJ), key=lambda c: c.name):
-        if isinstance(cmd, app_commands.Command) and cmd.name not in content.HELP_HIDDEN_COMMANDS:
+        if isinstance(cmd, app_commands.Command):
             lines.append(f"`/{cmd.name}` — {cmd.description}")
     description = content.HELP_DESCRIPTION.strip()
     if lines:
@@ -122,11 +123,6 @@ async def send_help(interaction: discord.Interaction) -> None:
 
 @bot.tree.command(name="ayuda", description=content.CMD_AYUDA_DESC, guild=GUILD_OBJ)
 async def ayuda(interaction: discord.Interaction) -> None:
-    await send_help(interaction)
-
-
-@bot.tree.command(name="help", description=content.CMD_HELP_DESC, guild=GUILD_OBJ)
-async def help_command(interaction: discord.Interaction) -> None:
     await send_help(interaction)
 
 
@@ -197,6 +193,7 @@ async def main() -> None:
     await site.start()
     log.info("Health endpoint en el puerto %s", PORT)
     await db.init()
+    await bot.add_cog(Vestidor(bot))
     try:
         async with bot:
             await bot.start(TOKEN)
