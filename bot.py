@@ -10,7 +10,9 @@ from discord.http import Route
 
 import content
 import db
+from encuesta import Encuesta
 from ojo import Ojo
+from quote import Quote, quote_context_menu
 from vestidor import Vestidor
 from welcome import Welcome
 
@@ -177,6 +179,9 @@ async def main() -> None:
     await bot.add_cog(Vestidor(bot))
     await bot.add_cog(Ojo(bot))
     await bot.add_cog(Welcome(bot))
+    await bot.add_cog(Quote(bot))
+    await bot.add_cog(Encuesta(bot))
+    bot.tree.add_command(quote_context_menu, guild=GUILD_OBJ)
     try:
         async with bot:
             await bot.start(TOKEN)

@@ -84,3 +84,25 @@ WELCOME_GUIDE = [
     ("🔊 Guevo en el mano 🍆", "Canal AFK."),
     ("🔊 La esquinita del payaso 🎪", "Canal de voz principal."),
 ]
+
+# Fase 5 - Quote (BORRADOR)
+QUOTE_CMD_DESC = "Genera una cita en blanco y negro"
+QUOTE_TEXT_DESC = "Texto de la quote"
+QUOTE_AUTHOR_DESC = "Autor de la quote (opcional)"
+QUOTE_CONTEXT_NAME = "Generar quote"
+QUOTE_EMPTY_ERROR = "Ese mensaje no tiene texto para citar."
+QUOTE_GENERIC_ERROR = "No pude generar la quote."
+
+# Fase 5 - Encuesta (BORRADOR)
+POLL_CMD_DESC = "Crea una encuesta con botones"
+POLL_MODAL_TITLE = "Nueva encuesta"
+POLL_QUESTION_LABEL = "Pregunta"
+POLL_QUESTION_PLACEHOLDER = "¿Qué queremos jugar hoy?"
+POLL_OPTIONS_LABEL = "Opciones"
+POLL_OPTIONS_PLACEHOLDER = "Una por línea"
+POLL_ERROR_OPTIONS = "Pon entre 2 y 10 opciones."
+POLL_EMBED_TITLE = "📊 Encuesta"
+POLL_VOTE_OK = "Voto registrado."
+POLL_CLOSE = "Cerrar encuesta"
+POLL_CLOSED = "Encuesta cerrada."
+POLL_ONLY_CREATOR = "Solo quien creó la encuesta puede cerrarla."
