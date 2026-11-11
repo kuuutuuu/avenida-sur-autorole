@@ -84,6 +84,40 @@ class Welcome(commands.Cog):
         self.bot = bot
         bot.add_view(VerifyView(self))
 
+    async def send_verification(
+        self,
+        member: discord.Member,
+        channel: discord.TextChannel,
+        public_message: discord.Message | None,
+        embed: discord.Embed,
+    ) -> None:
+        # 1) DM: solo el nuevo miembro ve el boton
+        try:
+            dm = await member.create_dm()
+            await dm.send(embed=embed, view=VerifyView(self))
+            return
+        except Exception:
+            pass
+        # 2) Hilo privado en #isla, solo el nuevo miembro (y el dueño) lo ve
+        try:
+            thread = await channel.create_thread(
+                name=content.WELCOME_THREAD_NAME,
+                type=discord.ChannelType.private_thread,
+                invitable=False,
+                reason="Verificación de nuevo miembro",
+            )
+            await thread.add_user(member)
+            await thread.send(embed=embed, view=VerifyView(self))
+            return
+        except Exception:
+            pass
+        # 3) Ultimo recurso: boton en el mensaje publico
+        if public_message is not None:
+            try:
+                await public_message.edit(view=VerifyView(self))
+            except Exception:
+                pass
+
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         if member.guild.id != GUILD_ID or member.bot:
@@ -96,6 +130,7 @@ class Welcome(commands.Cog):
             avatar = await member.display_avatar.read()
         except Exception:
             avatar = None
+        public_message = None
         try:
             png = banner.generate_welcome_banner(member.display_name, avatar)
             file = discord.File(io.BytesIO(png), filename="banner.png")
@@ -104,19 +139,23 @@ class Welcome(commands.Cog):
                 color=content.WELCOME_EMBED_COLOR,
             )
             embed.set_image(url="attachment://banner.png")
-            await channel.send(
+            public_message = await channel.send(
                 content=content.WELCOME_MENTION.format(usuario=member.mention),
                 embed=embed,
                 file=file,
-                view=VerifyView(self),
             )
         except Exception:
             embed = discord.Embed(
                 description=content.WELCOME_TEXT,
                 color=content.WELCOME_EMBED_COLOR,
             )
-            await channel.send(
+            public_message = await channel.send(
                 content=content.WELCOME_MENTION.format(usuario=member.mention),
                 embed=embed,
-                view=VerifyView(self),
             )
+
+        verify_embed = discord.Embed(
+            description=content.WELCOME_TEXT,
+            color=content.WELCOME_EMBED_COLOR,
+        )
+        await self.send_verification(member, channel, public_message, verify_embed)
