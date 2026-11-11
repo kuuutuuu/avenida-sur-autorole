@@ -17,6 +17,20 @@ class OptionsView(discord.ui.View):
     def __init__(self, cog: "Welcome"):
         super().__init__(timeout=600)
         self.cog = cog
+        self.add_item(
+            discord.ui.Button(
+                label=content.WELCOME_OPT_RULES,
+                style=discord.ButtonStyle.link,
+                url=f"https://discord.com/channels/{GUILD_ID}/{RULES_CHANNEL_ID}",
+            )
+        )
+        self.add_item(
+            discord.ui.Button(
+                label=content.WELCOME_OPT_PRESENT,
+                style=discord.ButtonStyle.link,
+                url=f"https://discord.com/channels/{GUILD_ID}/{ISLA_CHANNEL_ID}",
+            )
+        )
 
     @discord.ui.button(label=content.WELCOME_OPT_VESTIDOR, style=discord.ButtonStyle.primary)
     async def vestidor(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -35,22 +49,6 @@ class OptionsView(discord.ui.View):
         for name, description in content.WELCOME_GUIDE:
             embed.add_field(name=name, value=description, inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @discord.ui.button(
-        label=content.WELCOME_OPT_RULES,
-        style=discord.ButtonStyle.link,
-        url=f"https://discord.com/channels/{GUILD_ID}/{RULES_CHANNEL_ID}",
-    )
-    async def rules(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        pass
-
-    @discord.ui.button(
-        label=content.WELCOME_OPT_PRESENT,
-        style=discord.ButtonStyle.link,
-        url=f"https://discord.com/channels/{GUILD_ID}/{ISLA_CHANNEL_ID}",
-    )
-    async def present(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        pass
 
 
 class VerifyView(discord.ui.View):
