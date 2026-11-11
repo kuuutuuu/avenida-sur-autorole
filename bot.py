@@ -10,6 +10,7 @@ from discord.http import Route
 
 import content
 import db
+from ojo import Ojo
 from vestidor import Vestidor
 
 TOKEN = os.environ["DISCORD_TOKEN"]
@@ -145,26 +146,6 @@ async def status(_: web.Request) -> web.Response:
     )
 
 
-async def debug(_: web.Request) -> web.Response:
-    try:
-        members = await bot.http.request(
-            Route("GET", "/guilds/{guild_id}/members", guild_id=GUILD_ID),
-            params={"limit": 1000},
-        )
-        return web.json_response(
-            {
-                "total": len(members),
-                "zero_role": [
-                    m["user"]["username"]
-                    for m in members
-                    if not m["user"].get("bot") and len(m.get("roles", [])) == 0
-                ],
-            }
-        )
-    except Exception as exc:
-        return web.json_response({"error": str(exc)}, status=500)
-
-
 async def commands_info(_: web.Request) -> web.Response:
     return web.json_response(
         {
@@ -184,7 +165,6 @@ async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
     app.router.add_get("/status", status)
-    app.router.add_get("/debug", debug)
     app.router.add_get("/commands", commands_info)
     app.router.add_get("/sync", sync_now)
     runner = web.AppRunner(app)
@@ -194,6 +174,7 @@ async def main() -> None:
     log.info("Health endpoint en el puerto %s", PORT)
     await db.init()
     await bot.add_cog(Vestidor(bot))
+    await bot.add_cog(Ojo(bot))
     try:
         async with bot:
             await bot.start(TOKEN)
