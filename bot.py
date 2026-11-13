@@ -183,6 +183,7 @@ async def memardo_test(_: web.Request) -> web.Response:
 
 async def cuantocabron_debug(_: web.Request) -> web.Response:
     import aiohttp
+    import xml.etree.ElementTree as ET
     from bs4 import BeautifulSoup
 
     from memardo import UA
@@ -194,6 +195,15 @@ async def cuantocabron_debug(_: web.Request) -> web.Response:
             "?_x_tr_sl=es&_x_tr_tl=en&_x_tr_hl=en"
         ),
         "jina": "https://r.jina.ai/http://www.cuantocabron.com/top/dia",
+        "rss": "https://www.cuantocabron.com/rss",
+        "codetabs": (
+            "https://api.codetabs.com/v1/proxy"
+            "?quest=https://www.cuantocabron.com/top/dia"
+        ),
+        "allorigins": (
+            "https://api.allorigins.win/raw"
+            "?url=https%3A%2F%2Fwww.cuantocabron.com%2Ftop%2Fdia"
+        ),
     }
     result = {}
     for name, url in sources.items():
@@ -211,7 +221,7 @@ async def cuantocabron_debug(_: web.Request) -> web.Response:
                     status = response.status
                     text = await response.text()
             soup = BeautifulSoup(text, "html.parser")
-            result[name] = {
+            info = {
                 "status": status,
                 "length": len(text),
                 "title": soup.title.string if soup.title else None,
@@ -219,6 +229,31 @@ async def cuantocabron_debug(_: web.Request) -> web.Response:
                 "images": len(soup.select("img")),
                 "snippet": text[:200],
             }
+            if name == "rss":
+                try:
+                    root = ET.fromstring(text)
+                    items = root.findall("./channel/item")
+                    info["rss_items"] = len(items)
+                    if items:
+                        description = items[0].findtext("description") or ""
+                        image = BeautifulSoup(description, "html.parser").find("img")
+                        if image and image.get("src"):
+                            info["first_image"] = image["src"]
+                            async with aiohttp.ClientSession() as image_session:
+                                async with image_session.get(
+                                    image["src"],
+                                    headers={"User-Agent": UA},
+                                    timeout=60,
+                                ) as image_response:
+                                    image_data = await image_response.read()
+                            info["image_status"] = image_response.status
+                            info["image_bytes"] = len(image_data)
+                            info["image_type"] = image_response.headers.get(
+                                "Content-Type"
+                            )
+                except Exception as exc:
+                    info["rss_error"] = repr(exc)
+            result[name] = info
         except Exception as exc:
             result[name] = {"error": repr(exc)}
     return web.json_response(result)
