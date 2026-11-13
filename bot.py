@@ -185,27 +185,43 @@ async def cuantocabron_debug(_: web.Request) -> web.Response:
     import aiohttp
     from bs4 import BeautifulSoup
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                "https://www.cuantocabron.com/top/dia",
-                headers={"User-Agent": UA},
-            ) as response:
-                status = response.status
-                text = await response.text()
-        soup = BeautifulSoup(text, "html.parser")
-        return web.json_response(
-            {
+    from memardo import UA
+
+    sources = {
+        "direct": "https://www.cuantocabron.com/top/dia",
+        "translate": (
+            "https://www-cuantocabron-com.translate.goog/top/dia"
+            "?_x_tr_sl=es&_x_tr_tl=en&_x_tr_hl=en"
+        ),
+        "jina": "https://r.jina.ai/http://www.cuantocabron.com/top/dia",
+    }
+    result = {}
+    for name, url in sources.items():
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    url,
+                    headers={
+                        "User-Agent": UA,
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                    },
+                    timeout=60,
+                ) as response:
+                    status = response.status
+                    text = await response.text()
+            soup = BeautifulSoup(text, "html.parser")
+            result[name] = {
                 "status": status,
                 "length": len(text),
                 "title": soup.title.string if soup.title else None,
                 "stories": len(soup.select("div.box.story")),
                 "images": len(soup.select("img")),
-                "snippet": text[:400],
+                "snippet": text[:200],
             }
-        )
-    except Exception as exc:
-        return web.json_response({"error": repr(exc)}, status=500)
+        except Exception as exc:
+            result[name] = {"error": repr(exc)}
+    return web.json_response(result)
 
 
 async def main() -> None:
