@@ -12,7 +12,7 @@ import content
 import db
 from encuesta import Encuesta
 from excomulgar import Excomulgar
-from memardo import Memardo
+from memardo import Memardo, UA
 from ojo import Ojo
 from quote import Quote, quote_context_menu
 from sexo import Sexo
@@ -181,6 +181,33 @@ async def memardo_test(_: web.Request) -> web.Response:
     )
 
 
+async def cuantocabron_debug(_: web.Request) -> web.Response:
+    import aiohttp
+    from bs4 import BeautifulSoup
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://www.cuantocabron.com/top/dia",
+                headers={"User-Agent": UA},
+            ) as response:
+                status = response.status
+                text = await response.text()
+        soup = BeautifulSoup(text, "html.parser")
+        return web.json_response(
+            {
+                "status": status,
+                "length": len(text),
+                "title": soup.title.string if soup.title else None,
+                "stories": len(soup.select("div.box.story")),
+                "images": len(soup.select("img")),
+                "snippet": text[:400],
+            }
+        )
+    except Exception as exc:
+        return web.json_response({"error": repr(exc)}, status=500)
+
+
 async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
@@ -188,6 +215,7 @@ async def main() -> None:
     app.router.add_get("/commands", commands_info)
     app.router.add_get("/sync", sync_now)
     app.router.add_get("/memardo-test", memardo_test)
+    app.router.add_get("/cuantocabron-debug", cuantocabron_debug)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
