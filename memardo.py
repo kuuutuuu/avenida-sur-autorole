@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -45,27 +46,61 @@ def image_extension(url: str, content_type: str) -> str:
     return ".png"
 
 
-async def fetch_cuantocabron(session: aiohttp.ClientSession):
-    async with session.get(
-        "https://www.cuantocabron.com/top/dia",
-        headers={"User-Agent": UA},
-    ) as response:
-        response.raise_for_status()
-        html = await response.text()
+def parse_cuantocabron(html: str):
     soup = BeautifulSoup(html, "html.parser")
     for story in soup.select("div.box.story"):
         link = story.select_one("h2.storyTitle a")
-        image = story.select_one("p.story_content img")
-        if link is None or image is None:
+        if link is None:
             continue
-        source = image.get("src")
-        if not source:
+        image = story.select_one("figure.article-media-hero img")
+        if image is None:
+            image = story.select_one("p.story_content img")
+        if image is None:
+            image = story.find(
+                "img", src=re.compile(r"statics\.memondo\.com")
+            )
+        if image is None:
             continue
+        source = image.get("src") or image.get("data-src")
+        if not source or "facebook_button" in source or "twitter_button" in source:
+            continue
+        share = story.select_one("img.fb-share-button-static")
+        page_url = share.get("data-url") if share else None
+        if not page_url:
+            href = link.get("href") or ""
+            page_url = href.split("?")[0].replace(
+                "https://www-cuantocabron-com.translate.goog",
+                "https://www.cuantocabron.com",
+            )
         title = link.get_text(strip=True)
-        page_url = link.get("href") or ""
-        if page_url.startswith("/"):
-            page_url = "https://www.cuantocabron.com" + page_url
         return title, page_url, source
+    return None
+
+
+async def fetch_cuantocabron(session: aiohttp.ClientSession):
+    sources = [
+        "https://www.cuantocabron.com/top/dia",
+        (
+            "https://www-cuantocabron-com.translate.goog/top/dia"
+            "?_x_tr_sl=es&_x_tr_tl=en&_x_tr_hl=en"
+        ),
+    ]
+    for url in sources:
+        try:
+            async with session.get(
+                url,
+                headers={"User-Agent": UA},
+                timeout=60,
+            ) as response:
+                response.raise_for_status()
+                html = await response.text()
+            if not html.strip():
+                continue
+            parsed = parse_cuantocabron(html)
+            if parsed is not None:
+                return parsed
+        except Exception:
+            continue
     raise RuntimeError("CuantoCabron sin imagen")
 
 
