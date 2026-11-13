@@ -4,3 +4,5 @@ asyncpg>=0.29,<1
 emoji>=2.10,<3
 Pillow>=10
 pilmoji>=2.0,<3
+beautifulsoup4>=4.12,<5
+tzdata>=2024.1

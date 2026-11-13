@@ -11,8 +11,11 @@ from discord.http import Route
 import content
 import db
 from encuesta import Encuesta
+from excomulgar import Excomulgar
+from memardo import Memardo
 from ojo import Ojo
 from quote import Quote, quote_context_menu
+from sexo import Sexo
 from vestidor import Vestidor
 from welcome import Welcome
 
@@ -111,7 +114,7 @@ async def on_member_join(member: discord.Member) -> None:
 def build_help_embed() -> discord.Embed:
     lines = []
     for cmd in sorted(bot.tree.get_commands(guild=GUILD_OBJ), key=lambda c: c.name):
-        if isinstance(cmd, app_commands.Command):
+        if isinstance(cmd, app_commands.Command) and cmd.name not in content.HELP_HIDDEN_COMMANDS:
             lines.append(f"`/{cmd.name}` — {cmd.description}")
     description = content.HELP_DESCRIPTION.strip()
     if lines:
@@ -181,6 +184,9 @@ async def main() -> None:
     await bot.add_cog(Welcome(bot))
     await bot.add_cog(Quote(bot))
     await bot.add_cog(Encuesta(bot))
+    await bot.add_cog(Memardo(bot))
+    await bot.add_cog(Sexo(bot))
+    await bot.add_cog(Excomulgar(bot))
     bot.tree.add_command(quote_context_menu, guild=GUILD_OBJ)
     try:
         async with bot:
