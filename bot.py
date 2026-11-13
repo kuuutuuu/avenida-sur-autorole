@@ -12,15 +12,12 @@ import content
 import db
 from encuesta import Encuesta
 from excomulgar import Excomulgar
-from memardo import Memardo, UA
+from memardo import Memardo
 from ojo import Ojo
 from quote import Quote, quote_context_menu
 from sexo import Sexo
 from vestidor import Vestidor
 from welcome import Welcome
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("avenida-bot")
 
 TOKEN = os.environ["DISCORD_TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
@@ -170,103 +167,12 @@ async def sync_now(_: web.Request) -> web.Response:
     return web.json_response({"synced": state["synced"], "sync_error": state["sync_error"]})
 
 
-async def memardo_test(_: web.Request) -> web.Response:
-    cog = bot.get_cog("Memardo")
-    if cog is None:
-        return web.json_response({"ok": False, "error": "Memardo no cargado"}, status=500)
-    ok, error = await cog.publish(forced=True)
-    return web.json_response(
-        {"ok": ok, "error": error},
-        status=200 if ok else 500,
-    )
-
-
-async def cuantocabron_debug(_: web.Request) -> web.Response:
-    import aiohttp
-    import xml.etree.ElementTree as ET
-    from bs4 import BeautifulSoup
-
-    from memardo import UA
-
-    sources = {
-        "direct": "https://www.cuantocabron.com/top/dia",
-        "translate": (
-            "https://www-cuantocabron-com.translate.goog/top/dia"
-            "?_x_tr_sl=es&_x_tr_tl=en&_x_tr_hl=en"
-        ),
-        "jina": "https://r.jina.ai/http://www.cuantocabron.com/top/dia",
-        "rss": "https://www.cuantocabron.com/rss",
-        "codetabs": (
-            "https://api.codetabs.com/v1/proxy"
-            "?quest=https://www.cuantocabron.com/top/dia"
-        ),
-        "allorigins": (
-            "https://api.allorigins.win/raw"
-            "?url=https%3A%2F%2Fwww.cuantocabron.com%2Ftop%2Fdia"
-        ),
-    }
-    result = {}
-    for name, url in sources.items():
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url,
-                    headers={
-                        "User-Agent": UA,
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-                    },
-                    timeout=60,
-                ) as response:
-                    status = response.status
-                    text = await response.text()
-            soup = BeautifulSoup(text, "html.parser")
-            info = {
-                "status": status,
-                "length": len(text),
-                "title": soup.title.string if soup.title else None,
-                "stories": len(soup.select("div.box.story")),
-                "images": len(soup.select("img")),
-                "snippet": text[:200],
-            }
-            if name == "rss":
-                try:
-                    root = ET.fromstring(text)
-                    items = root.findall("./channel/item")
-                    info["rss_items"] = len(items)
-                    if items:
-                        description = items[0].findtext("description") or ""
-                        image = BeautifulSoup(description, "html.parser").find("img")
-                        if image and image.get("src"):
-                            info["first_image"] = image["src"]
-                            async with aiohttp.ClientSession() as image_session:
-                                async with image_session.get(
-                                    image["src"],
-                                    headers={"User-Agent": UA},
-                                    timeout=60,
-                                ) as image_response:
-                                    image_data = await image_response.read()
-                            info["image_status"] = image_response.status
-                            info["image_bytes"] = len(image_data)
-                            info["image_type"] = image_response.headers.get(
-                                "Content-Type"
-                            )
-                except Exception as exc:
-                    info["rss_error"] = repr(exc)
-            result[name] = info
-        except Exception as exc:
-            result[name] = {"error": repr(exc)}
-    return web.json_response(result)
-
-
 async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
     app.router.add_get("/status", status)
     app.router.add_get("/commands", commands_info)
     app.router.add_get("/sync", sync_now)
-    app.router.add_get("/memardo-test", memardo_test)
-    app.router.add_get("/cuantocabron-debug", cuantocabron_debug)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
