@@ -19,6 +19,9 @@ from sexo import Sexo
 from vestidor import Vestidor
 from welcome import Welcome
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("avenida-bot")
+
 TOKEN = os.environ["DISCORD_TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
 ROLE_ID = int(os.environ["ROLE_ID"])
@@ -167,12 +170,24 @@ async def sync_now(_: web.Request) -> web.Response:
     return web.json_response({"synced": state["synced"], "sync_error": state["sync_error"]})
 
 
+async def memardo_test(_: web.Request) -> web.Response:
+    cog = bot.get_cog("Memardo")
+    if cog is None:
+        return web.json_response({"ok": False, "error": "Memardo no cargado"}, status=500)
+    ok, error = await cog.publish(forced=True)
+    return web.json_response(
+        {"ok": ok, "error": error},
+        status=200 if ok else 500,
+    )
+
+
 async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
     app.router.add_get("/status", status)
     app.router.add_get("/commands", commands_info)
     app.router.add_get("/sync", sync_now)
+    app.router.add_get("/memardo-test", memardo_test)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)

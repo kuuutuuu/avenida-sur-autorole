@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -11,6 +12,8 @@ from discord.ext import commands, tasks
 
 import content
 import db
+
+log = logging.getLogger("avenida-memardo")
 
 GUILD_ID = int(os.environ["GUILD_ID"])
 GUILD_OBJ = discord.Object(id=GUILD_ID)
@@ -235,6 +238,7 @@ class Memardo(commands.Cog):
             )
             return True, ""
         except Exception as exc:
+            log.exception("Memardo fallo")
             return False, str(exc)
 
     @app_commands.command(name="memardo", description=content.MEMARDO_CMD_DESC)
