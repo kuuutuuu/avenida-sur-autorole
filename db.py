@@ -58,6 +58,12 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS excomulgar_usage (
+    user_id BIGINT NOT NULL,
+    used_on DATE NOT NULL,
+    PRIMARY KEY (user_id, used_on)
+);
+
 CREATE TABLE IF NOT EXISTS daily_memes (
     meme_date DATE PRIMARY KEY,
     source TEXT NOT NULL,

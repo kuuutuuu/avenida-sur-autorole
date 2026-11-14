@@ -106,8 +106,6 @@ POLL_VOTE_OK = "Voto registrado."
 POLL_CLOSE = "Cerrar encuesta"
 POLL_CLOSED = "Encuesta cerrada."
 POLL_ONLY_CREATOR = "Solo quien creó la encuesta puede cerrarla."
-
-# Fase 6 - Memardo (APROBADO)
 MEMARDO_THREAD = "Memardo del día 🤣"
 MEMARDO_TITLE = "Memardo del día"
 MEMARDO_CMD_DESC = "Publica o cambia la fuente del memardo diario."
@@ -121,8 +119,10 @@ EXCOM_CMD_DESC = "Excomulga a alguien por 60 segundos."
 EXCOM_TITLE = "⛪ Excomunión"
 EXCOM_TEXT = "{usuario} ha sido excomulgado por 60 segundos. Que los 8 Mandamientos te amparen."
 EXCOM_NOT_OWNER = "Solo Pollita Sucia puede excomulgar."
+EXCOM_NOT_NOBLEZA = "Solo la Nobleza puede excomulgar."
+EXCOM_ALREADY_USED = "Ya usaste tu excomunión de hoy."
 EXCOM_BAD_TARGET = "No puedo excomulgar a ese usuario."
 EXCOM_USER_DESC = "Usuario a excomulgar."
 
 # Comandos que no se listan en /ayuda hasta que el usuario apruebe
-HELP_HIDDEN_COMMANDS = {"memardo", "excomulgar"}
+HELP_HIDDEN_COMMANDS = {"memardo", "memardodeldia", "excomulgar"}

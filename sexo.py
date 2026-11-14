@@ -7,8 +7,7 @@ import discord
 from discord.ext import commands
 
 GUILD_ID = int(os.environ["GUILD_ID"])
-TEST_ONLY = True
-TEST_CHANNEL_ID = 1569886467138781286  # #ojo-de-pollita-👁️
+EXCLUDED_CATEGORY_ID = 969498559340740648  # 📄 Información / Comandos 📄
 COOLDOWN_SECONDS = 60
 PATTERN = re.compile(r"\bsexo\b", re.IGNORECASE)
 IMAGE_PATH = Path(__file__).parent / "assets" / "sexo.jpeg"
@@ -25,7 +24,7 @@ class Sexo(commands.Cog):
             return
         if message.author.bot:
             return
-        if TEST_ONLY and message.channel.id != TEST_CHANNEL_ID:
+        if message.channel.parent_id == EXCLUDED_CATEGORY_ID:
             return
         if not PATTERN.search(message.content or ""):
             return
