@@ -128,5 +128,5 @@ EXCOM_ALREADY_USED = "Ya usaste tu excomunión de hoy."
 EXCOM_BAD_TARGET = "No puedo excomulgar a ese usuario."
 EXCOM_USER_DESC = "Usuario a excomulgar."
 
-# Comandos que no se listan en /ayuda hasta que el usuario apruebe
-HELP_HIDDEN_COMMANDS = {"memardo", "memardodeldia", "excomulgar"}
+# Comandos que no se listan en /ayuda (ninguno: todos aprobados)
+HELP_HIDDEN_COMMANDS = set()
