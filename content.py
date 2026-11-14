@@ -113,6 +113,10 @@ MEMARDO_SOURCE_CC = "CuantoCabron"
 MEMARDO_SOURCE_REDDIT = "Reddit"
 MEMARDO_SOURCE_CHANGED = "Fuente cambiada a {fuente}."
 MEMARDO_NOW = "Publica el memardo de hoy ahora mismo."
+MEMARDODIA_CMD_DESC = "Trae el meme del día de la fuente que elijas."
+MEMARDODIA_SOURCE_DESC = "Fuente del meme"
+MEMARDODIA_NOT_NOBLEZA = "Solo la Nobleza puede usar esto."
+MEMARDODIA_ERROR = "No pude traer el meme."
 
 # Fase 6 - Excomulgar (APROBADO)
 EXCOM_CMD_DESC = "Excomulga a alguien por 60 segundos."
