@@ -195,12 +195,13 @@ def generate_birthday_banner(avatar_bytes: bytes, name: str) -> bytes:
     title_parts = content.BIRTHDAY_TITLE.split(" ")
     title_size = 74
     title_font = _font(FONT_DISPLAY, title_size)
-    while (
-        max(_text_size(part, title_font)[0] for part in title_parts) > 540
-        and title_size > 40
-    ):
+    title_width = max(_text_size(part, title_font)[0] for part in title_parts)
+    while title_width > 540 and title_size > 40:
         title_size -= 2
         title_font = _font(FONT_DISPLAY, title_size)
+        title_width = max(
+            _text_size(part, title_font)[0] for part in title_parts
+        )
     x = 380
     title_y = 92
     line_height = int(title_size * 1.02)
@@ -216,7 +217,7 @@ def generate_birthday_banner(avatar_bytes: bytes, name: str) -> bytes:
     # divisor dorado
     divider_y = title_y + len(title_parts) * line_height + 12
     draw.rectangle(
-        [x, divider_y, x + 150, divider_y + 4],
+        [x, divider_y, x + title_width, divider_y + 4],
         fill=(255, 209, 102, 255),
     )
 
