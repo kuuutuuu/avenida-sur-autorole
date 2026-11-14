@@ -14,6 +14,7 @@ GUILD_OBJ = discord.Object(id=GUILD_ID)
 OWNER_ID = int(os.environ.get("OWNER_ID", "310866269299671052"))
 NOBLEZA_ROLE_ID = int(os.environ.get("NOBLEZA_ROLE_ID", "969477457898004481"))
 PROXY_URL = os.environ.get("CUANTOCABRON_PROXY_URL", "").rstrip("/")
+PROXY_FALLBACK_URL = os.environ.get("CUANTOCABRON_PROXY_FALLBACK_URL", "").rstrip("/")
 PROXY_TOKEN = os.environ.get("CUANTOCABRON_PROXY_TOKEN", "")
 REDDIT_CLIENT_ID = os.environ.get("REDDIT_CLIENT_ID", "")
 REDDIT_CLIENT_SECRET = os.environ.get("REDDIT_CLIENT_SECRET", "")
@@ -42,34 +43,50 @@ def image_extension(url: str, content_type: str) -> str:
 
 
 async def fetch_cuantocabron(session: aiohttp.ClientSession):
-    if not PROXY_URL or not PROXY_TOKEN:
+    if not PROXY_TOKEN:
+        raise RuntimeError("proxy sin token")
+    bases = [
+        base for base in (PROXY_URL, PROXY_FALLBACK_URL) if base
+    ]
+    if not bases:
         raise RuntimeError("proxy no configurado")
-    async with session.get(
-        f"{PROXY_URL}/cc",
-        params={"token": PROXY_TOKEN},
-        timeout=60,
-    ) as response:
-        response.raise_for_status()
-        data = await response.json()
-    if not data.get("ok"):
-        raise RuntimeError(data.get("error") or "CuantoCabron sin imagen")
-    image_url = data["image"]
-    async with session.get(
-        f"{PROXY_URL}/img",
-        params={"token": PROXY_TOKEN, "url": image_url},
-        timeout=60,
-    ) as response:
-        response.raise_for_status()
-        image = await response.read()
-        content_type = response.headers.get("Content-Type", "image/jpeg")
-    if len(image) > MAX_IMAGE_BYTES:
-        raise RuntimeError("imagen demasiado grande")
-    return (
-        data.get("title", ""),
-        data.get("url", ""),
-        image,
-        image_extension(image_url, content_type),
-    )
+    last_error = None
+    for base in bases:
+        try:
+            async with session.get(
+                f"{base}/cc",
+                params={"token": PROXY_TOKEN},
+                timeout=60,
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+            if not data.get("ok"):
+                raise RuntimeError(
+                    data.get("error") or "CuantoCabron sin imagen"
+                )
+            image_url = data["image"]
+            async with session.get(
+                f"{base}/img",
+                params={"token": PROXY_TOKEN, "url": image_url},
+                timeout=60,
+            ) as response:
+                response.raise_for_status()
+                image = await response.read()
+                content_type = response.headers.get(
+                    "Content-Type", "image/jpeg"
+                )
+            if len(image) > MAX_IMAGE_BYTES:
+                raise RuntimeError("imagen demasiado grande")
+            return (
+                data.get("title", ""),
+                data.get("url", ""),
+                image,
+                image_extension(image_url, content_type),
+            )
+        except Exception as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(str(last_error) if last_error else "sin imagen")
 
 
 async def fetch_reddit(session: aiohttp.ClientSession):
