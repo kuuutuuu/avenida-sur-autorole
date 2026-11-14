@@ -90,54 +90,54 @@ async def fetch_cuantocabron(session: aiohttp.ClientSession):
 
 
 async def fetch_reddit(session: aiohttp.ClientSession):
-    if not REDDIT_CLIENT_ID or not REDDIT_CLIENT_SECRET:
-        raise RuntimeError("Reddit sin credenciales")
-    auth = aiohttp.BasicAuth(REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET)
-    async with session.post(
-        "https://www.reddit.com/api/v1/access_token",
-        auth=auth,
-        data={"grant_type": "client_credentials"},
-        headers={"User-Agent": UA},
-    ) as response:
-        response.raise_for_status()
-        token = (await response.json())["access_token"]
-    async with session.get(
-        "https://oauth.reddit.com/r/BuenosMemesEsp/top",
-        params={"t": "day", "limit": 10},
-        headers={"Authorization": f"bearer {token}", "User-Agent": UA},
-    ) as response:
-        response.raise_for_status()
-        payload = await response.json()
-    for child in payload["data"]["children"]:
-        post = child["data"]
-        image_url = post.get("url_overridden_by_dest") or post.get("url")
-        if not image_url:
+    if not PROXY_TOKEN:
+        raise RuntimeError("proxy sin token")
+    bases = [base for base in (PROXY_URL, PROXY_FALLBACK_URL) if base]
+    if not bases:
+        raise RuntimeError("proxy no configurado")
+    last_error = None
+    for base in bases:
+        try:
+            async with session.get(
+                f"{base}/reddit",
+                params={"token": PROXY_TOKEN},
+                timeout=60,
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+            if not data.get("ok"):
+                raise RuntimeError(data.get("error") or "Reddit sin imagen")
+            for candidate in (data.get("image"), data.get("image_fallback")):
+                if not candidate:
+                    continue
+                try:
+                    async with session.get(
+                        f"{base}/img",
+                        params={"token": PROXY_TOKEN, "url": candidate},
+                        timeout=60,
+                    ) as response:
+                        response.raise_for_status()
+                        image = await response.read()
+                        content_type = response.headers.get(
+                            "Content-Type", ""
+                        )
+                    if not content_type.startswith("image/"):
+                        raise RuntimeError("no es imagen")
+                    if len(image) > MAX_IMAGE_BYTES:
+                        raise RuntimeError("imagen demasiado grande")
+                    return (
+                        data.get("title", ""),
+                        data.get("url", ""),
+                        image,
+                        image_extension(candidate, content_type),
+                    )
+                except Exception as exc:
+                    last_error = exc
+                    continue
+        except Exception as exc:
+            last_error = exc
             continue
-        clean = image_url.lower().split("?")[0]
-        if not any(
-            clean.endswith(extension)
-            for extension in (".jpg", ".jpeg", ".png", ".gif", ".webp")
-        ):
-            continue
-        title = post.get("title", "")
-        permalink = "https://www.reddit.com" + post.get("permalink", "")
-        async with session.get(
-            image_url,
-            headers={"User-Agent": UA},
-            timeout=60,
-        ) as image_response:
-            image_response.raise_for_status()
-            image = await image_response.read()
-            content_type = image_response.headers.get("Content-Type", "")
-        if len(image) > MAX_IMAGE_BYTES:
-            raise RuntimeError("imagen demasiado grande")
-        return (
-            title,
-            permalink,
-            image,
-            image_extension(image_url, content_type),
-        )
-    raise RuntimeError("Reddit sin imagen")
+    raise RuntimeError(str(last_error) if last_error else "sin imagen")
 
 
 class Memardo(commands.Cog):
