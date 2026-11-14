@@ -130,3 +130,8 @@ EXCOM_USER_DESC = "Usuario a excomulgar."
 
 # Comandos que no se listan en /ayuda (ninguno: todos aprobados)
 HELP_HIDDEN_COMMANDS = set()
+
+# Fase 7 - Cumpleaños (BORRADOR)
+BIRTHDAY_TITLE = "¡FELIZ CUMPLEAÑOS!"
+BIRTHDAY_MENTION = "¡Feliz cumpleaños, {usuario}!"
+BIRTHDAY_EMBED_COLOR = 0xFFD166
