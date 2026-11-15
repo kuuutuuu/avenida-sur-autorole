@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -6,11 +7,21 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+log = logging.getLogger(__name__)
+
 GUILD_ID = int(os.environ["GUILD_ID"])
 EXCLUDED_CATEGORY_ID = 969498559340740648  # 📄 Información / Comandos 📄
 COOLDOWN_SECONDS = 60
 PATTERN = re.compile(r"\bsexo\b", re.IGNORECASE)
 IMAGE_PATH = Path(__file__).parent / "assets" / "sexo.jpeg"
+
+
+def _category_id(channel: discord.abc.GuildChannel) -> int | None:
+    category_id = getattr(channel, "category_id", None)
+    if category_id is None:
+        parent = getattr(channel, "parent", None)
+        category_id = getattr(parent, "category_id", None)
+    return category_id
 
 
 class Sexo(commands.Cog):
@@ -24,7 +35,7 @@ class Sexo(commands.Cog):
             return
         if message.author.bot:
             return
-        if message.channel.parent_id == EXCLUDED_CATEGORY_ID:
+        if _category_id(message.channel) == EXCLUDED_CATEGORY_ID:
             return
         if not PATTERN.search(message.content or ""):
             return
@@ -36,4 +47,4 @@ class Sexo(commands.Cog):
         try:
             await message.channel.send(file=discord.File(IMAGE_PATH))
         except Exception:
-            pass
+            log.exception("No se pudo enviar la imagen de sexo")
