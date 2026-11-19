@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 
+import aiohttp
 import discord
 from aiohttp import web
 from discord import app_commands
@@ -12,7 +13,7 @@ import content
 import db
 from encuesta import Encuesta
 from excomulgar import Excomulgar
-from memardo import Memardo
+from memardo import Memardo, fetch_cuantocabron, fetch_reddit
 from ojo import Ojo
 from quote import Quote, quote_context_menu
 from sexo import Sexo
@@ -167,12 +168,41 @@ async def sync_now(_: web.Request) -> web.Response:
     return web.json_response({"synced": state["synced"], "sync_error": state["sync_error"]})
 
 
+async def diag_memardo(request: web.Request) -> web.Response:
+    if request.query.get("token") != os.environ.get(
+        "CUANTOCABRON_PROXY_TOKEN"
+    ):
+        return web.json_response({"error": "forbidden"}, status=403)
+    results = {}
+    async with aiohttp.ClientSession() as session:
+        for name, fetcher in (
+            ("cuantocabron", fetch_cuantocabron),
+            ("reddit", fetch_reddit),
+        ):
+            try:
+                title, url, image, extension = await fetcher(session)
+                results[name] = {
+                    "ok": True,
+                    "bytes": len(image),
+                    "extension": extension,
+                    "title": title[:120],
+                    "url": url[:200],
+                }
+            except Exception as exc:
+                results[name] = {
+                    "ok": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+    return web.json_response(results)
+
+
 async def main() -> None:
     app = web.Application()
     app.router.add_get("/", health)
     app.router.add_get("/status", status)
     app.router.add_get("/commands", commands_info)
     app.router.add_get("/sync", sync_now)
+    app.router.add_get("/diag/memardo", diag_memardo)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)

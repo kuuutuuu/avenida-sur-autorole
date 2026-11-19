@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from typing import Optional
 
@@ -8,6 +9,8 @@ from discord import app_commands
 from discord.ext import commands
 
 import content
+
+log = logging.getLogger(__name__)
 
 GUILD_ID = int(os.environ["GUILD_ID"])
 GUILD_OBJ = discord.Object(id=GUILD_ID)
@@ -198,6 +201,7 @@ class Memardo(commands.Cog):
                 file=discord.File(io.BytesIO(image), filename=filename),
             )
         except Exception:
+            log.exception("No se pudo traer el meme (fuente=%s)", fuente.value)
             await interaction.followup.send(
                 content.MEMARDODIA_ERROR, ephemeral=True
             )
