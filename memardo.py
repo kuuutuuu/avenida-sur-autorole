@@ -2,9 +2,11 @@ import io
 import logging
 import os
 from typing import Optional
+from urllib.parse import urljoin
 
 import aiohttp
 import discord
+from bs4 import BeautifulSoup
 from discord import app_commands
 from discord.ext import commands
 
@@ -26,6 +28,15 @@ UA = (
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
+REDDIT_SUBREDDIT = "BuenosMemesEsp"
+# Reddit retiró los RSS el 13/11/2026. Redlib es un frontend que sigue
+# sirviendo el top del día y además proxya las imágenes.
+REDLIB_BASES = [
+    "https://redlib.zanity.net",
+    "https://redlib.privadency.com",
+    "https://redlib.hbubli.cc",
+    "https://redlib.utilibre.org",
+]
 
 
 def image_extension(url: str, content_type: str) -> str:
@@ -92,31 +103,64 @@ async def fetch_cuantocabron(session: aiohttp.ClientSession):
     raise RuntimeError(str(last_error) if last_error else "sin imagen")
 
 
+def parse_redlib_posts(html: str, base: str) -> list[tuple[str, str, str]]:
+    soup = BeautifulSoup(html, "html.parser")
+    posts: list[tuple[str, str, str]] = []
+    for post in soup.select("div.post"):
+        title_links = post.select("h2.post_title a")
+        if not title_links:
+            continue
+        title_link = title_links[-1]
+        title = title_link.get_text(" ", strip=True)
+        href = title_link.get("href") or ""
+        if not title or not href:
+            continue
+        page_url = (
+            urljoin("https://www.reddit.com", href)
+            if href.startswith("/")
+            else href
+        )
+        media = post.select_one(
+            "div.post_media_content a.post_media_image"
+        )
+        image_url = ""
+        if media is not None:
+            image_href = media.get("href") or ""
+            if image_href:
+                image_url = urljoin(base, image_href)
+            else:
+                image = media.select_one("img")
+                if image is not None and image.get("src"):
+                    image_url = urljoin(base, image["src"])
+        if not image_url:
+            image = post.select_one("div.post_media_content img")
+            if image is not None and image.get("src"):
+                image_url = urljoin(base, image["src"])
+        if image_url:
+            posts.append((title, page_url, image_url))
+    return posts
+
+
 async def fetch_reddit(session: aiohttp.ClientSession):
-    if not PROXY_TOKEN:
-        raise RuntimeError("proxy sin token")
-    bases = [base for base in (PROXY_URL, PROXY_FALLBACK_URL) if base]
-    if not bases:
-        raise RuntimeError("proxy no configurado")
     last_error = None
-    for base in bases:
+    for base in REDLIB_BASES:
         try:
             async with session.get(
-                f"{base}/reddit",
-                params={"token": PROXY_TOKEN},
-                timeout=60,
+                f"{base}/r/{REDDIT_SUBREDDIT}/top",
+                params={"t": "day"},
+                headers={"User-Agent": UA},
+                timeout=30,
             ) as response:
                 response.raise_for_status()
-                data = await response.json()
-            if not data.get("ok"):
-                raise RuntimeError(data.get("error") or "Reddit sin imagen")
-            for candidate in (data.get("image"), data.get("image_fallback")):
-                if not candidate:
-                    continue
+                html = await response.text()
+            posts = parse_redlib_posts(html, base)
+            if not posts:
+                raise RuntimeError("Redlib sin posts con imagen")
+            for title, page_url, image_url in posts[:3]:
                 try:
                     async with session.get(
-                        f"{base}/img",
-                        params={"token": PROXY_TOKEN, "url": candidate},
+                        image_url,
+                        headers={"User-Agent": UA},
                         timeout=60,
                     ) as response:
                         response.raise_for_status()
@@ -129,10 +173,10 @@ async def fetch_reddit(session: aiohttp.ClientSession):
                     if len(image) > MAX_IMAGE_BYTES:
                         raise RuntimeError("imagen demasiado grande")
                     return (
-                        data.get("title", ""),
-                        data.get("url", ""),
+                        title,
+                        page_url,
                         image,
-                        image_extension(candidate, content_type),
+                        image_extension(image_url, content_type),
                     )
                 except Exception as exc:
                     last_error = exc
