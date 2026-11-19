@@ -156,7 +156,7 @@ async def fetch_reddit(session: aiohttp.ClientSession):
             posts = parse_redlib_posts(html, base)
             if not posts:
                 raise RuntimeError("Redlib sin posts con imagen")
-            for title, page_url, image_url in posts[:3]:
+            for title, page_url, image_url in posts[:5]:
                 try:
                     async with session.get(
                         image_url,
@@ -164,12 +164,12 @@ async def fetch_reddit(session: aiohttp.ClientSession):
                         timeout=60,
                     ) as response:
                         response.raise_for_status()
-                        image = await response.read()
                         content_type = response.headers.get(
                             "Content-Type", ""
                         )
-                    if not content_type.startswith("image/"):
-                        raise RuntimeError("no es imagen")
+                        if not content_type.startswith("image/"):
+                            raise RuntimeError("no es imagen")
+                        image = await response.read()
                     if len(image) > MAX_IMAGE_BYTES:
                         raise RuntimeError("imagen demasiado grande")
                     return (
